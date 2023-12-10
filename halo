@@ -1,0 +1,79 @@
+<?php
+
+// Ambil data dari Webhook
+$input = file_get_contents("php://input");
+$data = json_decode($input);
+
+// Validasi apakah data yang diterima adalah data JSON yang valid
+if (json_last_error() !== JSON_ERROR_NONE) {
+    // Tangani kesalahan JSON
+    die("Error decoding JSON data");
+}
+
+// Ambil pesan pertama dari pengguna
+$receivedMessage = isset($data->messages[0]->body) ? $data->messages[0]->body : '';
+
+// Tanggapi berdasarkan pesan pengguna
+$replyMessage = "";
+
+if (empty($receivedMessage)) {
+    // Pesan selamat datang jika pesan pengguna kosong
+    $replyMessage = "Halo, Selamat Datang di Home Credit Indonesia. Ada yang perlu kita bantu? Silakan pilih opsi:\n1. Pelunasan\n2. Metode Pembayaran\n3. Keluhan\n4. Berbicara Dengan Operator";
+} else {
+    // Tanggapi berdasarkan pilihan pengguna
+    switch (strtolower($receivedMessage)) {
+        case '1':
+            $replyMessage = "Anda memilih Pelunasan. Silakan ikuti petunjuk pelunasan kami.";
+            break;
+        case '2':
+            $replyMessage = "Anda memilih Metode Pembayaran. Berikut adalah metode pembayaran yang dapat Anda gunakan.";
+            break;
+        case '3':
+            $replyMessage = "Anda memilih Keluhan. Silakan berikan rincian keluhan Anda, dan kami akan segera menanggapi.";
+            break;
+        case '4':
+            $replyMessage = "Anda memilih Berbicara Dengan Operator. Pilihan:\n1. Mohon di tunggu sebentar, operator kami akan membalas dan pesan akan di balas sesuai dengan nomer antriannya, dan harap sabar untuk menunggu, Terima kasih\n2. Kembali ke MENU";
+            break;
+        case 'kembali ke menu':
+            // Pengalihan ke pesan selamat datang jika pengguna memilih "Kembali ke MENU"
+            $replyMessage = "Halo, Selamat Datang di Home Credit Indonesia. Ada yang perlu kita bantu? Silakan pilih opsi:\n1. Pelunasan\n2. Metode Pembayaran\n3. Keluhan\n4. Berbicara Dengan Operator";
+            break;
+        default:
+            // Tanggapi jika pilihan tidak valid
+            $replyMessage = "Maaf, pilihan tidak valid. Silakan pilih opsi yang benar.";
+            break;
+    }
+}
+
+// Kirim balasan menggunakan Webhook WhatsApp API
+$phoneNumber = isset($data->messages[0]->from) ? $data->messages[0]->from : '';
+if (!empty($phoneNumber) && !empty($replyMessage)) {
+    sendWhatsAppMessage($phoneNumber, $replyMessage);
+} else {
+    // Tangani kesalahan jika nomor telepon atau pesan kosong
+    die("Error: Missing phone number or reply message");
+}
+
+// Fungsi untuk mengirim pesan WhatsApp
+function sendWhatsAppMessage($phoneNumber, $message) {
+    $apiUrl = "https://api.whatsapp.com/send?phone=$phoneNumber&text=" . urlencode($message);
+    // Atau Anda dapat menggunakan metode lain untuk mengirim pesan, seperti mengintegrasikan dengan layanan WhatsApp Business API
+    // Pastikan untuk menyimpan riwayat pesan atau melacak log penggunaan API Anda
+    // ...
+    
+    // Contoh penggunaan CURL untuk mengirim pesan melalui Webhook
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    // Lakukan penanganan respons atau log jika diperlukan
+    if ($httpCode != 200) {
+        // Tangani kesalahan HTTP jika terjadi
+        die("Error sending WhatsApp message: HTTP $httpCode");
+    }
+    // ...
+}
+
+?>
